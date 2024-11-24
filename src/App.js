@@ -77,62 +77,80 @@ function App() {
   };
   
 //getfeed
-  const getFeed = async () => {
-    const response = await fetch(
-      `http://localhost:8080/get_feed?subreddit=${subreddit}`,
-      { method: "GET", credentials: "include" }
-    );
-  
-    if (response.ok) {
-      const data = await response.json();
-  
-      if (data.message) {
-        const lines = data.message.split("\n"); // Split lines
-        const postsArray = [];
-        let currentPost = null;
-  
-        lines.forEach((line) => {
-          const trimmedLine = line.trim();
-  
-          // Check if the line represents a post
-          if (trimmedLine.startsWith("Post ID:")) {
-            const postData = trimmedLine.split(" | ");
-            if (postData.length === 4) {
-              currentPost = {
-                postID: postData[0].split(":")[1].trim(),
-                author: postData[1].split(":")[1].trim(),
-                votes: parseInt(postData[2].split(":")[1].trim(), 10),
-                content: postData[3].split(":")[1].trim(),
-                comments: [], // Initialize an empty comments array
-              };
-              postsArray.push(currentPost);
-            }
+const getFeed = async () => {
+  const response = await fetch(
+    `http://localhost:8080/get_feed?subreddit=${subreddit}`,
+    { method: "GET", credentials: "include" }
+  );
+
+  if (response.ok) {
+    const data = await response.json();
+
+    if (data.message) {
+      const lines = data.message.split("\n");
+      const postsArray = [];
+      let currentPost = null;
+      let currentComment = null;
+
+      lines.forEach((line) => {
+        const trimmedLine = line.trim();
+
+        // Handle posts
+        if (trimmedLine.startsWith("Post ID:")) {
+          const postData = trimmedLine.split(" | ");
+          if (postData.length === 4) {
+            currentPost = {
+              postID: postData[0].split(":")[1].trim(),
+              author: postData[1].split(":")[1].trim(),
+              votes: parseInt(postData[2].split(":")[1].trim(), 10),
+              content: postData[3].split(":")[1].trim(),
+              comments: [],
+            };
+            postsArray.push(currentPost);
+            currentComment = null; // Reset current comment
           }
-  
-          // Check if the line represents a comment
-          else if (trimmedLine.startsWith("Comment ID:") && currentPost) {
-            const commentData = trimmedLine.split(" | ");
-            if (commentData.length === 4) {
-              const comment = {
-                commentID: commentData[0].split(":")[1].trim(),
-                author: commentData[1].split(":")[1].trim(),
-                votes: parseInt(commentData[2].split(":")[1].trim(), 10),
-                content: commentData[3].split(":")[1].trim(),
-              };
-              currentPost.comments.push(comment); // Add the comment to the current post
-            }
+        }
+
+        // Handle comments
+        else if (trimmedLine.startsWith("Comment ID:") && currentPost) {
+          const commentData = trimmedLine.split(" | ");
+          if (commentData.length === 4) {
+            const comment = {
+              commentID: commentData[0].split(":")[1].trim(),
+              author: commentData[1].split(":")[1].trim(),
+              votes: parseInt(commentData[2].split(":")[1].trim(), 10),
+              content: commentData[3].split(":")[1].trim(),
+              replies: [],
+            };
+            currentPost.comments.push(comment);
+            currentComment = comment; // Set the current comment for replies
           }
-        });
-  
-        setPosts(postsArray);
-      } else {
-        alert("Invalid response format.");
-      }
+        }
+
+        // Handle replies
+        else if (trimmedLine.startsWith("  Reply ID:") && currentComment) {
+          const replyData = trimmedLine.split(" | ");
+          if (replyData.length === 4) {
+            const reply = {
+              replyID: replyData[0].split(":")[1].trim(),
+              author: replyData[1].split(":")[1].trim(),
+              votes: parseInt(replyData[2].split(":")[1].trim(), 10),
+              content: replyData[3].split(":")[1].trim(),
+            };
+            currentComment.replies.push(reply);
+          }
+        }
+      });
+
+      setPosts(postsArray);
     } else {
-      alert("Failed to fetch feed!");
+      alert("Invalid response format.");
     }
-  };
-  
+  } else {
+    alert("Failed to fetch feed!");
+  }
+};
+
   
   
 
@@ -221,6 +239,29 @@ function App() {
       alert("Failed to add comment!");
     }
   };
+
+
+  //reply to comment
+  const replyToComment = async (commentID) => {
+    const replyContent = prompt("Enter your reply:");
+    if (!replyContent) {
+      alert("Reply cannot be empty.");
+      return;
+    }
+  
+    const response = await fetch(
+      `http://localhost:8080/reply_to_comment?commentID=${commentID}&author=${username}&content=${replyContent}`,
+      { method: "POST", credentials: "include" }
+    );
+  
+    if (response.ok) {
+      alert("Reply added successfully!");
+      getFeed(); // Refresh feed to display the new reply
+    } else {
+      alert("Failed to add reply!");
+    }
+  };
+  
   
   
 
@@ -282,7 +323,7 @@ function App() {
         <button onClick={() => votePost(post.postID, -1)}>Downvote</button>
         <button onClick={() => handleComment(post.postID)}>Comment</button>
 
-        {/* Display comments */}
+        {/* Render Comments */}
         {post.comments.length > 0 && (
           <ul>
             {post.comments.map((comment, idx) => (
@@ -291,6 +332,23 @@ function App() {
                 <strong>Content:</strong> {comment.content} <br />
                 <strong>Votes:</strong> {comment.votes} <br />
                 <strong>Author:</strong> {comment.author} <br />
+                <button onClick={() => replyToComment(comment.commentID)}>
+                  Reply
+                </button>
+
+                {/* Render Replies */}
+                {comment.replies.length > 0 && (
+                  <ul>
+                    {comment.replies.map((reply, ridx) => (
+                      <li key={ridx}>
+                        <strong>Reply ID:</strong> {reply.replyID} <br />
+                        <strong>Content:</strong> {reply.content} <br />
+                        <strong>Votes:</strong> {reply.votes} <br />
+                        <strong>Author:</strong> {reply.author} <br />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -299,6 +357,7 @@ function App() {
     ))}
   </ul>
 </div>
+
 
 
 
