@@ -256,11 +256,54 @@ const getFeed = async () => {
   
     if (response.ok) {
       alert("Reply added successfully!");
-      getFeed(); // Refresh feed to display the new reply
+      getFeed(); 
     } else {
       alert("Failed to add reply!");
     }
   };
+
+  //simulation1
+  const simulateConnection = async () => {
+    const connected = prompt("Enter 'true' if connected, 'false' if disconnected:");
+  
+    if (connected !== "true" && connected !== "false") {
+      alert("Invalid input. Please enter 'true' or 'false'.");
+      return;
+    }
+  
+    const response = await fetch(
+      `http://localhost:8080/simulate_connection?username=${username}&connected=${connected}`,
+      { method: "POST", credentials: "include" }
+    );
+  
+    if (response.ok) {
+      if (connected === "true") {
+        alert(`${username} is connected.`);
+      } else {
+        alert(`${username} is disconnected.`);
+      }
+    } else {
+      alert("Failed to simulate connection!");
+    }
+  };
+
+
+  //simulation2
+  const simulateZipfDistribution = async () => {
+    const response = await fetch(
+      `http://localhost:8080/simulate_zipf_distribution`,
+      { method: "POST", credentials: "include" }
+    );
+  
+    if (response.ok) {
+      alert("Zipf distribution simulation completed successfully!");
+      // Optionally handle any additional logic, e.g., updating UI or fetching new data.
+    } else {
+      alert("Failed to simulate Zipf distribution!");
+    }
+  };
+  
+  
   
   
   
@@ -309,6 +352,15 @@ const getFeed = async () => {
             />
             <button onClick={createPost}>Create Post</button>
           </div>
+
+
+          <div>
+  <h3>Controls</h3>
+  <button onClick={simulateZipfDistribution}>Simulate Zipf Distribution</button>
+  <button onClick={simulateConnection}>Simulate Connection</button>
+</div>
+
+
 
           <div>
   <h3>View Feed</h3>
