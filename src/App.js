@@ -372,8 +372,8 @@ const getFeed = async () => {
         <strong>Post ID:</strong> {post.postID} <br />
         <strong>Content:</strong> {post.content} <br />
         <strong>Votes:</strong> {post.votes} <br />
-        <button onClick={() => votePost(post.postID, 1)}>Upvote</button>
-        <button onClick={() => votePost(post.postID, -1)}>Downvote</button>
+        <button className="green-button" onClick={() => votePost(post.postID, 1)}>Upvote</button>
+        <button className="red-button" onClick={() => votePost(post.postID, -1)}>Downvote</button>
         <button onClick={() => handleComment(post.postID)}>Comment</button>
 
         {/* Render Comments */}
